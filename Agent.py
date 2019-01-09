@@ -2,13 +2,13 @@ import numpy as np
 import random
 from collections import namedtuple, deque
 
-from model import QNetwork,Duel_QNetwork
+from model import QNetwork
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 32         # minibatch size
+BUFFER_SIZE = int(1e6)  # replay buffer size
+BATCH_SIZE = 10000         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 LR = 5e-4               # learning rate 
@@ -35,12 +35,14 @@ class agent():
         self.seed = random.seed(seed)
 
         #Chose betweeen regulat Q-Network or duel architecture
-        if(duel):    
-            self.qnetwork_local  = Duel_QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
-            self.qnetwork_target = Duel_QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
-        else:
-            self.qnetwork_local  = QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
-            self.qnetwork_target = QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
+        #if(duel):    
+        #   self.qnetwork_local  = Duel_QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
+        #    self.qnetwork_target = Duel_QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
+        #else:
+        #    self.qnetwork_local  = QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
+        #   self.qnetwork_target = QNetwork(state_size, action_size,fc1_units,fc2_units, seed).to(device)
+        self.qnetwork_local  = QNetwork(state_size, action_size, seed).to(device)
+        self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
                 
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
 
@@ -99,6 +101,8 @@ class agent():
            gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = experiences
+        states=states.view(BATCH_SIZE,1,55,100)
+        next_states=next_states.view(BATCH_SIZE,1,55,100)
         #
         # Get max predicted Q values (for next states) from target model
         Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
