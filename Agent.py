@@ -8,10 +8,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 BUFFER_SIZE = int(1e6)  # replay buffer size
-BATCH_SIZE = 10000         # minibatch size
+BATCH_SIZE = 32         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
-LR = 5e-4               # learning rate 
+LR = 0.0001             # learning rate 
 UPDATE_EVERY = 4        # how often to update the network
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -55,7 +55,7 @@ class agent():
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step = 0
     
-    def step(self, state, action, reward, next_state, done,dqn):
+    def step(self,state_size, state, action, reward, next_state, done,dqn):
         # Save experience in replay memory
         self.memory.add(state, action, reward, next_state, done)
         
@@ -66,7 +66,7 @@ class agent():
             if len(self.memory) > BATCH_SIZE:
                 experiences = self.memory.sample()
                 if(dqn):
-                    self.DQN_learn(experiences, GAMMA)
+                    self.DQN_learn(experiences,state_size, GAMMA)
                 else:
                     self.DDQN_learn(experiences, GAMMA)
 
@@ -78,7 +78,7 @@ class agent():
             state (array_like): current state
             eps (float): epsilon, for epsilon-greedy action selection
         """
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        state = torch.from_numpy(state).float().to(device)
         # Model eval notify layers in model.py  that it is eval mode
         self.qnetwork_local.eval() 
         with torch.no_grad():
@@ -91,7 +91,7 @@ class agent():
         else:
             return random.choice(np.arange(self.action_size))
 
-    def DQN_learn(self, experiences, gamma):
+    def DQN_learn(self, experiences,state_size, gamma):
         """Learn using the DQN algorithm.
            Update value parameters using given batch of experience tuples.
 
@@ -101,8 +101,8 @@ class agent():
            gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = experiences
-        states=states.view(BATCH_SIZE,1,55,100)
-        next_states=next_states.view(BATCH_SIZE,1,55,100)
+        states=states.view(BATCH_SIZE,4,state_size[0],state_size[1])
+        next_states=next_states.view(BATCH_SIZE,4,state_size[0],state_size[1])
         #
         # Get max predicted Q values (for next states) from target model
         Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
